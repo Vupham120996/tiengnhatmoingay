@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng Dụng Học Tiếng Nhật</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 90%;
+            max-width: 500px;
+            text-align: center;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        .quiz-box {
+            background: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border-left: 5px solid #007bff;
+            text-align: left;
+        }
+        .japanese {
+            font-size: 28px;
+            font-weight: bold;
+            color: #2c3e50;
+            display: block;
+            margin-bottom: 5px;
+        }
+        .vietnamese {
+            font-size: 18px;
+            color: #555;
+            display: none; /* Ẩn nghĩa lúc đầu để tự đoán */
+            margin-top: 10px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-top: 10px;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .btn-audio {
+            background-color: #28a745;
+        }
+        .btn-audio:hover {
+            background-color: #218838;
+        }
+        .btn-show {
+            background-color: #17a2b8;
+        }
+        .btn-show:hover {
+            background-color: #138496;
+        }
+        .navigation {
+            margin-top: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .progress {
+            font-size: 14px;
+            color: #777;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Học Tiếng Nhật Mỗi Ngày</h1>
+    <div class="progress">Câu hỏi: <span id="current-index">1</span>/5</div>
+    
+    <div class="quiz-box">
+        <span class="japanese" id="jp-text">こんにちは</span>
+        <button class="btn-audio" onclick="speak()">🔊 Nghe phát âm</button>
+        <button class="btn-show" onclick="toggleTranslation()">👁️ Xem dịch</button>
+        <div class="vietnamese" id="vi-text">Xin chào</div>
+    </div>
+
+    <div class="navigation">
+        <button onclick="previousQuestion()" id="btn-prev" style="visibility: hidden;">Câu trước</button>
+        <button onclick="nextQuestion()" id="btn-next">Câu tiếp theo</button>
+    </div>
+</div>
+
+<script>
+    // Kho dữ liệu tiếng Nhật của bạn (Có thể thêm bao nhiêu câu tùy thích vào đây)
+    const database = [
+        { jp: "こんにちは", vi: "Xin chào (Ban ngày)" },
+        { jp: "ありがとう ございます", vi: "Xin cảm ơn rất nhiều" },
+        { jp: "はじめまして", vi: "Rất hân hạnh được làm quen" },
+        { jp: "お元気ですか？", vi: "Bạn có khỏe không?" },
+        { jp: "さようなら", vi: "Tạm biệt" },
+        { jp: "すみません", vi: "Xin lỗi / Xin hỏi cho tôi hỏi" },
+        { jp: "おいしいです", vi: "Ngon lắm" },
+        { jp: "いくらですか？", vi: "Cái này bao nhiêu tiền?" },
+        { jp: "日本語がわかりません", vi: "Tôi không hiểu tiếng Nhật" },
+        { jp: "助けてください", vi: "Làm ơn giúp tôi với" }
+    ];
+
+    let selectedQuestions = [];
+    let currentIndex = 0;
+
+    // Hàm chọn ngẫu nhiên 5 câu từ database khi load trang
+    function initApp() {
+        // Trộn ngẫu nhiên danh sách câu hỏi
+        let shuffled = [...database].sort(() => 0.5 - Math.random());
+        // Lấy 5 câu đầu tiên
+        selectedQuestions = shuffled.slice(0, 5);
+        currentIndex = 0;
+        showQuestion();
+    }
+
+    // Hiển thị câu hỏi hiện tại
+    function showQuestion() {
+        let current = selectedQuestions[currentIndex];
+        document.getElementById("jp-text").innerText = current.jp;
+        document.getElementById("vi-text").innerText = current.vi;
+        document.getElementById("vi-text").style.display = "none"; // Ẩn dịch đi
+        document.getElementById("current-index").innerText = currentIndex + 1;
+
+        // Ẩn/hiện nút điều hướng
+        document.getElementById("btn-prev").style.visibility = currentIndex === 0 ? "hidden" : "visible";
+        if (currentIndex === selectedQuestions.length - 1) {
+            document.getElementById("btn-next").innerText = "Học lại (Đổi 5 câu mới)";
+        } else {
+            document.getElementById("btn-next").innerText = "Câu tiếp theo";
+        }
+    }
+
+    // Tính năng đọc tiếng Nhật (Dùng công nghệ Text-to-Speech có sẵn của trình duyệt)
+    function speak() {
+        let text = selectedQuestions[currentIndex].jp;
+        let utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ja-JP'; // Chọn ngôn ngữ là tiếng Nhật
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // Ẩn/hiện bản dịch tiếng Việt
+    function toggleTranslation() {
+        let viText = document.getElementById("vi-text");
+        if (viText.style.display === "none") {
+            viText.style.display = "block";
+        } else {
+            viText.style.display = "none";
+        }
+    }
+
+    // Qua câu tiếp theo
+    function nextQuestion() {
+        if (currentIndex < selectedQuestions.length - 1) {
+            currentIndex++;
+            showQuestion();
+        } else {
+            // Nếu là câu cuối, bấm sẽ tự động reset và đổi sang 5 câu ngẫu nhiên mới
+            initApp();
+        }
+    }
+
+    // Quay lại câu trước
+    function previousQuestion() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            showQuestion();
+        }
+    }
+
+    // Chạy ứng dụng khi vừa vào trang
+    window.onload = initApp;
+</script>
+
+</body>
+</html>
